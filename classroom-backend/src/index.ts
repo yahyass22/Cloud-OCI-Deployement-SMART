@@ -17,8 +17,9 @@ import {toNodeHandler} from "better-auth/node";
 import {auth} from "./lib/auth.js";
 
 const app = express();
-const PORT = 8000;
+const PORT = Number(process.env.PORT ?? 8000);
 
+app.set("trust proxy", 1);
 app.use(compression());
 
 
@@ -42,17 +43,18 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-// CORS debugging middleware
-app.use((req, res, next) => {
-  console.log('ðŸŒ CORS Debug:', {
-    path: req.path,
-    method: req.method,
-    origin: req.headers.origin,
-    hasCookie: !!req.headers.cookie,
-    cookieLength: req.headers.cookie?.length
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log('CORS Debug:', {
+      path: req.path,
+      method: req.method,
+      origin: req.headers.origin,
+      hasCookie: !!req.headers.cookie,
+      cookieLength: req.headers.cookie?.length
+    });
+    next();
   });
-  next();
-});
+}
 
 app.use(express.json());
 
@@ -117,9 +119,9 @@ app.get("/", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Auth endpoints available at http://localhost:${PORT}/api/auth/*`);
-  console.log(`Dashboard endpoints available at http://localhost:${PORT}/api/dashboard/*`);
-  console.log(`Discussions endpoints available at http://localhost:${PORT}/api/discussions/*`);
-  console.log(`Classes endpoints available at http://localhost:${PORT}/api/classes/*`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Auth endpoints available at /api/auth/*`);
+  console.log(`Dashboard endpoints available at /api/dashboard/*`);
+  console.log(`Discussions endpoints available at /api/discussions/*`);
+  console.log(`Classes endpoints available at /api/classes/*`);
 });
