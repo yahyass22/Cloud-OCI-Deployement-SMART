@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Map Diagnostics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1a1a1a; }
+        h2 { color: #4a4a4a; font-size: 18px; margin-top: 0; }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ccc;
+            background: #f9f9f9;
+        }
+        .test-result.pass { border-left-color: #28a745; background: #d4edda; }
+        .test-result.fail { border-left-color: #dc3545; background: #f8d7da; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background: #1a1a1a;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Campus Map Diagnostics</h1>
+    <p>This page runs diagnostic tests to check if your browser can run the campus map.</p>
+
+    <div class="card">
+        <h2>WebGL Support</h2>
+        <div id="webgl-test">Testing...</div>
+    </div>
+
+    <div class="card">
+        <h2>Three.js Compatibility</h2>
+        <div id="three-test">Testing...</div>
+    </div>
+
+    <div class="card">
+        <h2>Performance Capabilities</h2>
+        <div id="perf-test">Testing...</div>
+    </div>
+
+    <div class="card">
+        <h2>Browser Information</h2>
+        <div id="browser-info"></div>
+    </div>
+
+    <div class="card">
+        <h2>Run All Tests</h2>
+        <button onclick="runAllTests()">Run Diagnostics</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // WebGL Test
+        function testWebGL() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) {
+                return {
+                    pass: false,
+                    message: 'WebGL not supported',
+                    details: 'Your browser does not support WebGL'
+                };
+            }
+
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            const vendor = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'Unknown';
+            const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Unknown';
+            const version = gl.getParameter(gl.VERSION);
+            const shadingLanguageVersion = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
+
+            return {
+                pass: true,
+                message: 'WebGL supported',
+                details: {
+                    vendor,
+                    renderer,
+                    version,
+                    shadingLanguageVersion
+                }
+            };
+        }
+
+        // Three.js Test
+        function testThreeJS() {
+            return new Promise((resolve) => {
+                // Check if Three.js can be loaded
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/three@0.183.2/build/three.min.js';
+                script.onload = () => {
+                    resolve({
+                        pass: true,
+                        message: 'Three.js can be loaded',
+                        details: 'Version 0.183.2'
+                    });
+                };
+                script.onerror = () => {
+                    resolve({
+                        pass: false,
+                        message: 'Three.js failed to load',
+                        details: 'Network issue or blocked resource'
+                    });
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Performance Test
+        function testPerformance() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl');
+            
+            if (!gl) {
+                return {
+                    pass: false,
+                    message: 'Cannot test performance without WebGL',
+                    details: null
+                };
+            }
+
+            const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+            const maxViewportDims = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+            const aliasedLineWidthRange = gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE);
+            const maxVertexTextures = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+            const maxFragmentTextures = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+
+            const isGoodPerformance = maxTextureSize >= 4096 && maxVertexTextures >= 16;
+
+            return {
+                pass: isGoodPerformance,
+                message: isGoodPerformance ? 'Good performance capabilities' : 'Limited performance capabilities',
+                details: {
+                    maxTextureSize,
+                    maxViewportDims: `${maxViewportDims[0]}x${maxViewportDims[1]}`,
+                    maxVertexTextures,
+                    maxFragmentTextures
+                }
+            };
+        }
+
+        // Browser Info
+        function getBrowserInfo() {
+            return {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+                deviceMemory: navigator.deviceMemory || 'Unknown',
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine
+            };
+        }
+
+        // Display Functions
+        function displayWebGLTest() {
+            const result = testWebGL();
+            const element = document.getElementById('webgl-test');
+            
+            if (result.pass) {
+                element.innerHTML = `
+                    <span class="status ok">✓ PASS</span>
+                    <p><strong>GPU:</strong> ${result.details.renderer}</p>
+                    <p><strong>WebGL Version:</strong> ${result.details.version}</p>
+                    <p><strong>Shading Language:</strong> ${result.details.shadingLanguageVersion}</p>
+                `;
+            } else {
+                element.innerHTML = `
+                    <span class="status error">✗ FAIL</span>
+                    <p>${result.message}</p>
+                    <p>${result.details}</p>
+                `;
+            }
+            
+            return result;
+        }
+
+        function displayPerfTest() {
+            const result = testPerformance();
+            const element = document.getElementById('perf-test');
+            
+            const statusClass = result.pass ? 'ok' : 'warning';
+            const statusText = result.pass ? '✓ GOOD' : '⚠ LIMITED';
+            
+            element.innerHTML = `
+                <span class="status ${statusClass}">${statusText}</span>
+                ${result.details ? `
+                    <p><strong>Max Texture Size:</strong> ${result.details.maxTextureSize}px</p>
+                    <p><strong>Max Viewport:</strong> ${result.details.maxViewportDims}</p>
+                    <p><strong>Vertex Texture Units:</strong> ${result.details.maxVertexTextures}</p>
+                    <p><strong>Fragment Texture Units:</strong> ${result.details.maxFragmentTextures}</p>
+                ` : ''}
+            `;
+            
+            return result;
+        }
+
+        function displayBrowserInfo() {
+            const info = getBrowserInfo();
+            const element = document.getElementById('browser-info');
+            
+            element.innerHTML = `
+                <p><strong>Browser:</strong> ${info.userAgent}</p>
+                <p><strong>Platform:</strong> ${info.platform}</p>
+                <p><strong>CPU Cores:</strong> ${info.hardwareConcurrency}</p>
+                <p><strong>Memory:</strong> ${info.deviceMemory} GB (approximate)</p>
+                <p><strong>Language:</strong> ${info.language}</p>
+                <p><strong>Online:</strong> ${info.onLine ? 'Yes' : 'No'}</p>
+            `;
+        }
+
+        // Run All Tests
+        async function runAllTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+
+            const webglResult = testWebGL();
+            const perfResult = testPerformance();
+            const threeResult = await testThreeJS();
+
+            let html = '<h3>Test Results</h3>';
+            
+            // WebGL
+            html += `
+                <div class="test-result ${webglResult.pass ? 'pass' : 'fail'}">
+                    <strong>WebGL Support:</strong> ${webglResult.pass ? '✓ PASS' : '✗ FAIL'}<br>
+                    ${webglResult.message}
+                </div>
+            `;
+
+            // Three.js
+            html += `
+                <div class="test-result ${threeResult.pass ? 'pass' : 'fail'}">
+                    <strong>Three.js Loading:</strong> ${threeResult.pass ? '✓ PASS' : '✗ FAIL'}<br>
+                    ${threeResult.message}
+                </div>
+            `;
+
+            // Performance
+            html += `
+                <div class="test-result ${perfResult.pass ? 'pass' : 'fail'}">
+                    <strong>Performance:</strong> ${perfResult.pass ? '✓ PASS' : '✗ FAIL'}<br>
+                    ${perfResult.message}
+                </div>
+            `;
+
+            // Overall Recommendation
+            const allPass = webglResult.pass && threeResult.pass && perfResult.pass;
+            html += `
+                <div class="test-result ${allPass ? 'pass' : 'fail'}" style="margin-top: 20px;">
+                    <strong>Overall:</strong> ${allPass ? '✓ Your browser can run the campus map' : '✗ Issues detected - see details above'}
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run on load
+        window.onload = () => {
+            displayWebGLTest();
+            displayPerfTest();
+            displayBrowserInfo();
+        };
+    </script>
+</body>
+</html>
